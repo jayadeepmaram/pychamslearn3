@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PyQuest - Python Learning Platform</title>
+  <meta name="description" content="Master Python programming with structured lessons, practical capstone projects, database integration, and verified certificate of completion.">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Load Pyodide WebAssembly Python Runtime from CDN -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js" defer></script>
+  <!-- Load html2canvas for Image Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+</head>
+<body>
+
+  <!-- CONFETTI CANVAS -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- APP HEADER -->
+  <header class="app-header">
+    <div class="brand-container" onclick="app.showLevelMap()">
+      <div class="brand-logo">PY</div>
+      <div>
+        <span class="brand-title">PyQuest</span>
+        <span class="brand-tag">Core</span>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-chip" title="Total XP Earned">
+        <span>XP:</span>
+        <span id="user-xp" class="stat-value">0</span>
+      </div>
+
+      <button id="badges-btn" class="btn-secondary" title="View Earned Badges">
+        <span>Badges:</span>
+        <span id="badge-count" style="color: var(--primary);">0 / 12</span>
+      </button>
+
+      <button id="projects-nav-btn" class="btn-secondary" title="Capstone Project Studio">
+        <span id="projects-nav-label">Projects [Locked]</span>
+      </button>
+
+      <button id="cert-btn" class="btn-secondary" title="View Certificate of Completion">
+        <span>Certificate</span>
+      </button>
+
+      <button id="sound-btn" class="btn-icon" title="Toggle Sound">Sound: ON</button>
+      <button id="reset-progress-btn" class="btn-icon" title="Reset All Progress">Reset</button>
+    </div>
+  </header>
+
+  <!-- MAIN APPLICATION AREA -->
+  <main class="main-layout">
+
+    <!-- VIEW 1: LESSON SELECTION MAP -->
+    <section id="level-map" class="level-map-container">
+      <div class="map-header">
+        <h1 class="map-title">Python Learning Curriculum</h1>
+        <p class="map-subtitle">Master Python fundamentals step-by-step from zero to software development</p>
+      </div>
+
+
+
+      <!-- CAPSTONE PROJECT STATUS BANNER -->
+      <div id="project-banner-card" class="project-status-banner" onclick="app.handleProjectBannerClick()">
+        <div>
+          <span id="project-banner-tag" class="banner-tag">Capstone Studio</span>
+          <h2 id="project-banner-title" class="banner-title">Capstone Mini-Project Studio (Locked)</h2>
+          <p id="project-banner-desc" class="banner-desc">Complete all 16 curriculum lessons to unlock the Project Studio, write your own software from scratch, and integrate an SQLite database.</p>
+        </div>
+        <div>
+          <button id="project-banner-btn" class="btn-secondary" style="pointer-events: none;">Locked</button>
+        </div>
+      </div>
+
+      <div id="level-grid" class="level-grid">
+        <!-- Level cards dynamically rendered via app.js -->
+      </div>
+    </section>
+
+    <!-- VIEW 2: ARENA WORKSPACE (INSTRUCTIONS + EDITOR + TERMINAL) -->
+    <section id="arena-view" class="arena-container show-guide" style="display: none;">
+      
+      <!-- MOBILE VIEW SWITCHER TABS -->
+      <div class="mobile-view-tabs">
+        <button id="mobile-tab-guide" class="mobile-tab-btn active" onclick="app.setMobileView('guide')">Lesson Guide</button>
+        <button id="mobile-tab-editor" class="mobile-tab-btn" onclick="app.setMobileView('editor')">Code Editor</button>
+      </div>
+
+      <!-- LEFT PANEL: INSTRUCTIONS & LESSON CONTENT -->
+      <div class="arena-panel panel-left">
+        <div class="instruction-content">
+          <div class="level-nav-header">
+            <button id="back-to-map-btn" class="btn-back">← Curriculum</button>
+            <h2 id="level-title" class="level-title-large">Lesson 0</h2>
+          </div>
+
+          <!-- STORY BOX -->
+          <div id="level-story" class="story-box">
+            <!-- Level story narrative -->
+          </div>
+
+          <!-- CONCEPT EXPLANATION & EASY SYNTAX TEMPLATE -->
+          <div id="level-explanation" class="concept-box">
+            <!-- Code explanations & templates -->
+          </div>
+
+          <!-- CHALLENGE TASK -->
+          <div class="task-box">
+            <h4>Lesson Objective</h4>
+            <p id="level-task">Task instructions</p>
+          </div>
+
+          <!-- HINTS COLLAPSIBLE -->
+          <div class="hints-box">
+            <details>
+              <summary class="hints-toggle">Show Reference Hints</summary>
+              <ul id="hints-list" class="hints-list">
+                <!-- Hints items -->
+              </ul>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: CODE EDITOR & TERMINAL -->
+      <div class="arena-panel panel-right">
+        <!-- TOOLBAR -->
+        <div class="editor-toolbar">
+          <div class="editor-title">
+            <span>main.py</span>
+          </div>
+
+          <div class="action-buttons">
+            <button id="reset-code-btn" class="btn-secondary">Clear</button>
+            
+            <button id="try-yourself-btn" class="btn-secondary" style="display: none;">
+              <span>Try on Your Own</span>
+            </button>
+
+            <button id="run-code-btn" class="btn-primary">
+              <span>Run Code</span>
+            </button>
+
+            <button id="next-level-btn" class="btn-primary" style="display: none; background: #059669; border-color: #10b981;">
+              <span>Next Lesson →</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CODE TEXTAREA -->
+        <div class="editor-container">
+          <textarea id="code-textarea" class="code-textarea" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Write your Python code solution here..."></textarea>
+        </div>
+
+        <!-- CONSOLE TERMINAL OUTPUT -->
+        <div class="console-container">
+          <div class="console-header">
+            <span>Terminal Output</span>
+            <span style="font-size: 0.72rem;">Python 3.11</span>
+          </div>
+
+          <div id="console-output" class="console-output">
+            Write your code in the editor above and select 'Run Code'.
+          </div>
+
+          <div id="test-results" class="test-results-panel">
+            <!-- Test case pass/fail feedback -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 3: MINI-PROJECT STUDIO (UNLOCKED AFTER ALL LESSONS) -->
+    <section id="project-studio" class="arena-container show-guide" style="display: none;">
+      
+      <!-- MOBILE VIEW SWITCHER TABS FOR PROJECT STUDIO -->
+      <div class="mobile-view-tabs">
+        <button id="proj-tab-guide" class="mobile-tab-btn active" onclick="app.setProjectMobileView('guide')">Project Guide & DB</button>
+        <button id="proj-tab-editor" class="mobile-tab-btn" onclick="app.setProjectMobileView('editor')">Code & Terminal</button>
+      </div>
+
+      <!-- LEFT PANEL: PROJECT SELECTOR & INSTRUCTIONS -->
+      <div class="arena-panel panel-left">
+        <div class="instruction-content">
+          <div class="level-nav-header">
+            <button onclick="app.showLevelMap()" class="btn-back">← Curriculum</button>
+            <h2 class="level-title-large">Capstone Project Studio</h2>
+          </div>
+
+          <!-- PROJECT PICKER SELECTOR -->
+          <div class="project-selector-group">
+            <label style="font-size: 0.75rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Select Capstone Project:</label>
+            <div class="project-tabs-row">
+              <button class="project-chip-btn active" onclick="app.selectProject('calculator')">Calculator</button>
+              <button class="project-chip-btn" onclick="app.selectProject('todolist')">To-Do List</button>
+              <button class="project-chip-btn" onclick="app.selectProject('guessing_game')">Mystery Game</button>
+            </div>
+          </div>
+
+          <!-- PROJECT DETAILS & DATABASE GUIDE BOX -->
+          <div class="concept-box" style="margin-top: 14px;">
+            <h3 id="proj-title">Project 1: Command-Line Calculator</h3>
+            <p id="proj-desc">Write your own calculation logic and connect it to SQLite database storage.</p>
+            
+            <div style="margin: 10px 0;">
+              <div id="proj-concepts-tags" class="concepts-tags-row">
+                <!-- Tags generated in app.js -->
+              </div>
+            </div>
+
+            <!-- STEP-BY-STEP AND DATABASE GUIDANCE -->
+            <div id="proj-guidance-container" style="margin-top: 14px;">
+              <!-- Full guidance & sqlite3 tutorial injected from projects.js -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: CODE EDITOR & RUNNER -->
+      <div class="arena-panel panel-right">
+        <!-- TOOLBAR -->
+        <div class="editor-toolbar">
+          <div class="editor-title">
+            <span id="proj-file-title">project.py</span>
+          </div>
+
+          <div class="action-buttons">
+            <button onclick="app.resetProjectCode()" class="btn-secondary">Reset Template</button>
+
+            <button onclick="app.runProjectCode()" class="btn-primary">
+              <span>Run Code</span>
+            </button>
+
+            <button onclick="app.verifyProject()" class="btn-primary" style="background: #059669; border-color: #10b981;">
+              <span>Verify & Complete</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CODE TEXTAREA FOR MINI PROJECT (WRITTEN BY USER) -->
+        <div class="editor-container">
+          <textarea id="project-code-textarea" class="code-textarea" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Write your project code here..."></textarea>
+        </div>
+
+        <!-- CONSOLE TERMINAL OUTPUT -->
+        <div class="console-container">
+          <div class="console-header">
+            <span>Terminal Output</span>
+            <span style="font-size: 0.72rem; color: var(--accent-green);">Python Runtime</span>
+          </div>
+
+          <div id="project-console-output" class="console-output">
+            Write your project solution in the editor and click 'Run Code'. Follow the guidance panel on the left.
+          </div>
+
+          <div id="project-verify-results" class="test-results-panel" style="display: none;">
+            <!-- Verification result -->
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: BADGES SHOWCASE GALLERY -->
+  <div id="badges-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close close-modal">✕</button>
+      <h2 class="modal-title">Achievement Badges</h2>
+      <div id="badge-gallery" class="badge-grid">
+        <!-- Badges rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: BADGE UNLOCK CELEBRATION -->
+  <div id="celebration-modal" class="modal-overlay">
+    <div class="modal-card celebration-modal">
+      <button class="modal-close close-modal">✕</button>
+      
+      <div id="celebration-badge-icon" class="celebration-icon">
+        Badge
+      </div>
+
+      <h2 class="celebration-title">Badge Unlocked</h2>
+      <h3 id="celebration-badge-name" style="font-size: 1rem; margin-bottom: 6px; color: var(--primary);">Badge Name</h3>
+      <p id="celebration-badge-desc" class="celebration-desc">Badge Description</p>
+
+      <button class="btn-primary close-modal" style="margin: 0 auto;">Continue</button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: CERTIFICATE NAME ENTRY FORM -->
+  <div id="cert-name-modal" class="modal-overlay">
+    <div class="modal-card celebration-modal">
+      <button class="modal-close close-modal">✕</button>
+      
+      <h2 class="celebration-title">Course Complete</h2>
+      <p class="celebration-desc">Enter your full legal name to generate your verified Certificate of Completion.</p>
+
+      <form id="cert-form" onsubmit="event.preventDefault(); app.generateCertificate();">
+        <div class="cert-name-input-group">
+          <label style="font-size: 0.8rem; color: var(--text-muted);">Student Full Name:</label>
+          <input type="text" id="student-name-input" class="cert-input" placeholder="e.g. Alex Mercer" required>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin: 16px auto 0; width: 100%; justify-content: center;">
+          Generate Certificate
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: VIRTUAL CERTIFICATE DISPLAY -->
+  <div id="certificate-modal" class="modal-overlay">
+    <div class="modal-card certificate-modal-card">
+      <button class="modal-close close-modal">✕</button>
+      
+      <!-- PRINTABLE CERTIFICATE AREA -->
+      <div id="certificate-print-area">
+        <div class="certificate-frame">
+          <div class="cert-header">
+            <div class="cert-logo">PyQuest Academy</div>
+            <h1 class="cert-main-title">Certificate of Completion</h1>
+            <p class="cert-subtitle">Official Verification of Python Programming Proficiency & Project Implementation</p>
+          </div>
+
+          <div class="cert-body">
+            <p class="cert-present-text">This certificate is awarded to</p>
+            <h2 id="cert-display-name" class="cert-student-name">Alex Mercer</h2>
+            <p class="cert-course-name">
+              for successfully mastering the curriculum of <span class="cert-course-title">Python Core Fundamentals</span> and implementing a verified <span class="cert-course-title">Python Capstone Project</span>.
+            </p>
+          </div>
+
+          <div class="cert-footer">
+            <div>
+              <div class="cert-meta-item">Issue Date: <span id="cert-date-val" class="cert-meta-val">September 29, 2026</span></div>
+              <div class="cert-meta-item" style="margin-top: 4px;">Certificate ID: <span id="cert-id-val" class="cert-meta-val">PYQ-2026-8942</span></div>
+            </div>
+
+            <div class="cert-seal">
+              Verified<br>Graduate
+            </div>
+
+            <div style="text-align: right;">
+              <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">PyQuest Board</div>
+              <div class="cert-meta-item">Academic Verification</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CERTIFICATE ACTIONS BUTTONS -->
+      <div class="cert-actions" style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+        <button onclick="window.print()" class="btn-primary">
+          Save PDF
+        </button>
+        <button onclick="app.downloadCertificatePNG()" class="btn-secondary">
+          Download PNG
+        </button>
+        <button class="btn-secondary close-modal">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION SCRIPTS -->
+  <script src="levels.js"></script>
+  <script src="badges.js"></script>
+  <script src="projects.js"></script>
+  <script src="audio.js"></script>
+  <script src="pythonRunner.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
